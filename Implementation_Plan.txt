@@ -1,0 +1,68 @@
+# Harmoniq MVP Implementation Plan
+
+This document outlines the development plan for the **Harmoniq** platform MVP. The goal is to build a unified system for music discovery and copyright verification, reducing the need for multiple platforms.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **CSS Framework**: The project requirements mention Bootstrap or Tailwind CSS as suggested tools, but standard guidelines recommend rich Vanilla CSS for maximum flexibility and performance. For this MVP, I plan to use **Vanilla CSS with modern features** (CSS variables, flexbox/grid, animations, glassmorphism) to create a premium, dark-mode focused aesthetic. If you strongly prefer Tailwind CSS or Bootstrap, please let me know before we begin.
+>
+> **JSON Database**: For the MVP, we will use a local `data/tracks.json` file to store music metadata. Is there any specific mock data or structure you'd like included initially, or should I generate a sample dataset of royalty-free tracks?
+
+## Open Questions
+
+- Do you have a specific color palette or branding in mind, or should I design a vibrant dark-mode aesthetic with neon accents (e.g., purples/blues) fitting for a music platform?
+- For the audio upload, we'll use `multer` to save the file locally and then return a simulated "copyright check result." Is this acceptable for the MVP?
+
+## Proposed Changes
+
+We will build the application using Node.js, Express, and Vanilla web technologies.
+
+### Project Setup and Dependencies
+Initialize the Node.js project and install necessary dependencies:
+- `express` (web server)
+- `multer` (handling file uploads)
+- `cors` (cross-origin resource sharing)
+- `dotenv` (environment variables)
+
+### Backend (Node.js + Express)
+
+#### [NEW] server.js
+The main Express application entry point. Configures middleware, serves static frontend files, and registers API routes.
+
+#### [NEW] package.json
+Project configuration and scripts (e.g., `npm run dev`).
+
+#### [NEW] routes/tracks.js
+API endpoints for:
+- `GET /api/tracks` - Retrieve all tracks.
+- `GET /api/tracks/search` - Search/filter tracks by genre, mood, or query.
+
+#### [NEW] routes/upload.js
+API endpoint for:
+- `POST /api/upload` - Handles audio file uploads using `multer` and returns a mock copyright verification result.
+
+#### [NEW] data/tracks.json
+The JSON "database" containing sample track data (title, genre, mood, license type, safety status, etc.).
+
+### Frontend (HTML/CSS/JS)
+
+#### [NEW] public/index.html
+The Homepage and Music Search interface. Features a search bar, filter options, and a dynamic list of available tracks with their safety/licensing indicators.
+
+#### [NEW] public/upload.html
+The Copyright Checker page. Includes a drag-and-drop or file selection UI for uploading audio and displaying the verification results.
+
+#### [NEW] public/css/style.css
+The core design system. Will feature a premium dark theme, glassmorphism elements, smooth transitions, and responsive layout.
+
+#### [NEW] public/js/main.js
+Frontend logic to interface with the backend APIs: fetching tracks, handling searches, managing file uploads, and updating the UI dynamically.
+
+## Verification Plan
+
+### Automated/Manual Testing
+1. **Server Startup**: Run `npm run start` and ensure the server starts on the specified port without errors.
+2. **Music Search**: Open the homepage in a browser. Verify that the initial list of tracks loads. Test the search bar and filters to ensure the displayed list updates accordingly.
+3. **Audio Upload**: Navigate to the upload page. Select a dummy audio file and submit. Verify that the frontend correctly displays a simulated copyright verification result (e.g., "Safe", "Risk Detected") and licensing labels.
+4. **Responsive Design**: Resize the browser window to ensure the UI adapts cleanly to mobile, tablet, and desktop views.
