@@ -8,7 +8,8 @@
     "duration": "03:45",
     "license": "CC BY 4.0",
     "status": "No Match Detected",
-    "details": "Verified CC License. Free for commercial and non-commercial use with proper attribution (BY).",
+    "details": "✅ Free to use anywhere! Just credit the artist.",
+    "simplified_license": "Free for all uses (credit required)",
     "filepath": "/audio/sample_aether.mp3"
   },
   {
@@ -20,7 +21,8 @@
     "duration": "04:12",
     "license": "CC BY-NC-SA 4.0",
     "status": "No Match Detected",
-    "details": "Verified CC License. Free for non-commercial use, modification allowed under ShareAlike. Attribution required.",
+    "details": "⚠️ Not for making money. You can remix it, but share remixes under same license.",
+    "simplified_license": "Free for personal/hobby use (no selling, credit required)",
     "filepath": "/audio/sample_midnight_city.mp3"
   },
   {
@@ -32,7 +34,8 @@
     "duration": "02:30",
     "license": "CC BY-ND 4.0",
     "status": "No Match Detected",
-    "details": "Verified CC License. Free for commercial and non-commercial use but no derivative works allowed. Attribution required.",
+    "details": "✅ Free to use! Don't remix it. Credit the artist.",
+    "simplified_license": "Free for all uses (no remixing, credit required)",
     "filepath": "/audio/sample_urban_beatbox.mp3"
   },
   {
@@ -56,7 +59,8 @@
     "duration": "02:45",
     "license": "CC0 1.0 (Public Domain)",
     "status": "No Match Detected",
-    "details": "Public Domain dedication. You can copy, modify, and distribute the work, even for commercial purposes, without asking permission.",
+    "details": "🎉 100% free! Use however you want, even for selling/monetizing.",
+    "simplified_license": "Completely free (can use for anything)",
     "filepath": "/audio/sample_dreamy_sunset.mp3"
   },
   {
@@ -68,7 +72,8 @@
     "duration": "03:05",
     "license": "CC BY-NC 4.0",
     "status": "No Match Detected",
-    "details": "Verified CC License. Free for non-commercial use with proper attribution.",
+    "details": "⚠️ Not for making money. Free for personal projects. Credit the artist.",
+    "simplified_license": "Free for personal/hobby use (no selling, credit required)",
     "filepath": "/audio/sample_starry_night.mp3"
   },
   {
@@ -80,7 +85,8 @@
     "duration": "04:02",
     "license": "Sampling Copyright Match",
     "status": "Match Flagged",
-    "details": "Contains audio samples matching registered copyright content 'Dubstep Intro Loop' owned by SamplePacks Corp. Clearance required.",
+    "details": "❌ Contains copyrighted material. Need permission from owner to use.",
+    "simplified_license": "Cannot use without permission",
     "filepath": "/audio/sample_bass_drops.mp3"
   }
 ]

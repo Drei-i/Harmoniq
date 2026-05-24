@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <h3 class="track-title" title="${escapeHtml(track.title)}">${escapeHtml(track.title)}</h3>
               <p class="track-artist">${escapeHtml(track.artist)}</p>
             </div>
-            <span class="status-badge ${badge.className}">${escapeHtml(badge.text)}</span>
+            <span class="status-badge ${badge.className}" title="${escapeHtml(track.simplified_license || track.license)}">${escapeHtml(badge.text)}</span>
           </div>
           <p class="track-details">${escapeHtml(track.details)}</p>
           <div class="track-footer">

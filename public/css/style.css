@@ -176,7 +176,90 @@ main {
   max-width: 600px;
   margin: 0 auto;
 }
+/* License Legend Section */
+.license-legend {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  padding: 2rem;
+  margin-bottom: 2.5rem;
+  backdrop-filter: blur(8px);
+}
 
+.license-legend h3 {
+  font-size: 1.2rem;
+  margin-bottom: 1.5rem;
+  color: var(--text-primary);
+}
+
+.legend-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.legend-item {
+  padding: 1.2rem;
+  border-radius: 10px;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  transition: var(--transition-smooth);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.legend-item:hover {
+  transform: translateY(-2px);
+  border-color: rgba(99, 102, 241, 0.3);
+  background-color: rgba(99, 102, 241, 0.08);
+}
+
+.legend-icon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.legend-item h4 {
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.legend-item p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+}
+
+.legend-example {
+  font-size: 0.75rem;
+  background-color: rgba(99, 102, 241, 0.2);
+  color: var(--accent-color);
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.legend-free {
+  border-color: var(--color-safe);
+}
+
+.legend-personal {
+  border-color: var(--color-warning);
+}
+
+.legend-remix {
+  border-color: var(--color-warning);
+}
+
+.legend-blocked {
+  border-color: var(--color-risk);
+}
 /* Search and Controls Grid */
 .search-controls {
   display: grid;
@@ -188,6 +271,31 @@ main {
 @media (max-width: 768px) {
   .search-controls {
     grid-template-columns: 1fr;
+  }
+
+  .license-legend {
+    padding: 1.5rem;
+  }
+
+  .license-legend h3 {
+    font-size: 1rem;
+  }
+
+  .legend-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .legend-item {
+    padding: 0.9rem;
+  }
+
+  .legend-item h4 {
+    font-size: 0.85rem;
+  }
+
+  .legend-item p {
+    font-size: 0.75rem;
   }
 }
 
@@ -323,6 +431,28 @@ main {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+  cursor: help;
+  position: relative;
+}
+
+.status-badge:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  background-color: var(--bg-main);
+  color: var(--text-secondary);
+  padding: 0.6rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  margin-bottom: 0.5rem;
+  z-index: 10;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .status-badge.safe {
