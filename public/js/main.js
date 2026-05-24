@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const uploadLoader = document.getElementById('upload-loader');
   const uploadProgressFill = document.getElementById('upload-progress-fill');
   const loaderMessage = document.getElementById('loader-message');
+  const uploadErrorMessage = document.getElementById('upload-error');
   const reportContainer = document.getElementById('report-container');
   const resetUploadBtn = document.getElementById('reset-upload-btn');
   const fileSelectedDisplay = document.getElementById('file-selected-display');
@@ -132,6 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tracksGrid.innerHTML = tracks.map((track, index) => {
       const badge = getLicenseBadge(track);
+      const alreadyRequested = hasPendingPermissionRequest(track.id);
 
       return `
         <div class="track-card" data-index="${index}">
@@ -156,6 +158,9 @@ document.addEventListener('DOMContentLoaded', () => {
               <button class="action-btn share-track-btn" data-index="${index}" title="Share Track">
                 <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.15c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>
               </button>
+              ${track.status === 'Match Flagged' ? `
+              <button class="request-permission-btn${alreadyRequested ? ' requested' : ''}" data-index="${index}" title="Request permission from rights holder"${alreadyRequested ? ' disabled' : ''}>${alreadyRequested ? 'Requested' : 'Request Permission'}</button>
+              ` : ''}
               <button class="play-action-btn" data-action="play" data-index="${index}">
                 <svg viewBox="0 0 24 24">
                   <path d="M8 5v14l11-7z"/>
@@ -193,6 +198,15 @@ document.addEventListener('DOMContentLoaded', () => {
         e.stopPropagation();
         const index = parseInt(btn.getAttribute('data-index'), 10);
         shareTrack(allTracks[index]);
+      });
+    });
+
+    // Hook request permission buttons
+    document.querySelectorAll('.request-permission-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const index = parseInt(btn.getAttribute('data-index'), 10);
+        requestPermission(allTracks[index], btn);
       });
     });
   }
@@ -238,6 +252,52 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('Track info copied to clipboard!');
       });
     }
+  }
+
+  function getPermissionRequests() {
+    const stored = localStorage.getItem('harmoniq_permission_requests');
+    return stored ? JSON.parse(stored) : [];
+  }
+
+  function savePermissionRequests(requests) {
+    localStorage.setItem('harmoniq_permission_requests', JSON.stringify(requests));
+  }
+
+  function hasPendingPermissionRequest(trackId) {
+    return getPermissionRequests().some(request => request.id === trackId);
+  }
+
+  function requestPermission(track, button) {
+    const requests = getPermissionRequests();
+    if (requests.some(request => request.id === track.id)) {
+      alert('You already requested permission for this track.');
+      if (button) button.textContent = 'Requested';
+      return;
+    }
+
+    const projectName = prompt('Enter the project or use case for this permission request:', 'My video project');
+    if (projectName === null) return;
+
+    const newRequest = {
+      id: track.id,
+      title: track.title,
+      artist: track.artist,
+      license: track.license,
+      requestedAt: new Date().toISOString(),
+      projectName: projectName.trim() || 'Creative project',
+      status: 'Pending'
+    };
+
+    requests.push(newRequest);
+    savePermissionRequests(requests);
+
+    if (button) {
+      button.textContent = 'Requested';
+      button.classList.add('requested');
+      button.disabled = true;
+    }
+
+    alert(`Permission request saved locally for '${track.title}'. Use this summary when you contact the rights owner.`);
   }
 
   function setupDiscoveryEvents() {
@@ -553,6 +613,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Reset upload form
     resetUploadBtn.addEventListener('click', () => {
       reportContainer.style.display = 'none';
+      hideUploadError();
       if (tabFile.classList.contains('active')) {
         uploadZone.style.display = 'flex';
       } else {
@@ -564,7 +625,45 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function showUploadError(message) {
+    if (!uploadErrorMessage) return;
+    uploadErrorMessage.textContent = message;
+    uploadErrorMessage.classList.add('visible');
+    uploadErrorMessage.style.display = 'block';
+  }
+
+  function hideUploadError() {
+    if (!uploadErrorMessage) return;
+    uploadErrorMessage.textContent = '';
+    uploadErrorMessage.classList.remove('visible');
+    uploadErrorMessage.style.display = 'none';
+  }
+
   async function startVerificationLink(url) {
+    // Quick client-side validation: only accept YouTube links for the link checker
+    function extractYouTubeId(u) {
+      try {
+        const parsed = new URL(u);
+        const host = parsed.hostname.toLowerCase();
+        if (host.includes('youtu.be')) return parsed.pathname.slice(1);
+        if (host.includes('youtube.com')) {
+          if (parsed.searchParams.has('v')) return parsed.searchParams.get('v');
+          const parts = parsed.pathname.split('/').filter(Boolean);
+          const idx = parts.indexOf('shorts');
+          if (idx !== -1 && parts[idx+1]) return parts[idx+1];
+        }
+        return null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    const vid = extractYouTubeId(url);
+    if (!vid) {
+      showUploadError('Only YouTube video URLs are supported in the link checker. For direct audio files, use the file upload tab.');
+      return;
+    }
+    hideUploadError();
     // Show uploading screen
     uploadZone.style.display = 'none';
     linkZone.style.display = 'none';
@@ -615,7 +714,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     } catch (err) {
       clearInterval(progressTimer);
-      alert(`Error scanning link: ${err.message}`);
+      showUploadError(`Error scanning link: ${err.message}`);
       uploadLoader.style.display = 'none';
       if (tabFile.classList.contains('active')) {
         uploadZone.style.display = 'flex';
@@ -627,11 +726,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function handleFileSelection(file) {
     // Verify it is audio
-    if (!file.type.startsWith('audio/') && !['.mp3', '.wav', '.ogg', '.m4a', '.aac'].some(ext => file.name.toLowerCase().endsWith(ext))) {
-      alert('Selected file is not a supported audio format.');
+    if (!file.type.startsWith('audio/') && !['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac', '.webm'].some(ext => file.name.toLowerCase().endsWith(ext))) {
+      showUploadError('Selected file is not a supported audio format. Please upload MP3, WAV, OGG, M4A, AAC, FLAC, or WEBM.');
       return;
     }
 
+    hideUploadError();
     fileNameSpan.textContent = file.name;
     fileSelectedDisplay.style.display = 'flex';
     
@@ -640,6 +740,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function startVerificationUpload(file) {
+    hideUploadError();
     // Show uploading screen
     uploadZone.style.display = 'none';
     uploadLoader.style.display = 'flex';
@@ -686,7 +787,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     } catch (err) {
       clearInterval(progressTimer);
-      alert(`Error scanning track: ${err.message}`);
+      showUploadError(`Error scanning track: ${err.message}`);
       uploadLoader.style.display = 'none';
       uploadZone.style.display = 'flex';
     }
@@ -699,7 +800,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set core text contents
     document.getElementById('report-file-name').textContent = report.filename;
     document.getElementById('report-file-meta').innerHTML = `${report.fileSize} &bull; ${report.format}`;
-    document.getElementById('report-hash').textContent = report.fingerprintHash;
+    document.getElementById('report-hash').textContent = report.fingerprintHash || 'unavailable';
     document.getElementById('report-timestamp').textContent = `Scanned on: ${new Date(report.scanTimestamp).toLocaleString()}`;
     document.getElementById('report-match-rate').textContent = `${report.confidenceScore}% similarity`;
 
@@ -714,46 +815,9 @@ document.addEventListener('DOMContentLoaded', () => {
     statusBadge.className = 'status-badge';
     matchRows.innerHTML = '';
 
-    if (report.status === 'No Match Found') {
-      statusBadge.classList.add('warning');
-      statusBadge.textContent = 'Not Verified';
+    const isUnavailable = report.status === 'Verification unavailable';
 
-      matchBox.className = 'match-details-box warning-theme';
-      matchHeader.className = 'match-title warning-txt';
-      matchHeader.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" style="width: 24px; height: 24px;">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-        </svg>
-        No Match — Not Safe to Release
-      `;
-
-      matchRows.innerHTML = `
-        <div class="match-row">
-          <label>Identification Source</label>
-          <span>${escapeHtml(report.identificationSource || 'AcoustID')}</span>
-        </div>
-        <div class="match-row">
-          <label>Match Confidence</label>
-          <span>${report.confidenceScore}% similarity</span>
-        </div>
-      `;
-
-      recomTitle.textContent = 'Release Warning';
-      recomDesc.textContent = report.licenseAlternative.text;
-
-      // Allow previewing uploaded track using synth engine since file is deleted on server for temp reasons
-      // Add fake item to track registry so the player can list it
-      allTracks = [{
-        title: report.filename.split('.')[0],
-        artist: 'Your Uploaded Track',
-        filepath: '#',
-        genre: 'Electronic',
-        mood: 'Ambient'
-      }];
-      currentTrackIndex = 0;
-      
-    } else {
-      // Risk Theme
+    if (report.status === 'Match Found') {
       statusBadge.classList.add('risk');
       statusBadge.textContent = 'Match Found';
 
@@ -788,7 +852,6 @@ document.addEventListener('DOMContentLoaded', () => {
       recomTitle.textContent = 'Identification Note';
       recomDesc.textContent = report.match.recommendation;
 
-      // Setup audio preview with matching details
       allTracks = [{
         title: report.match.matchedTrack,
         artist: report.match.matchedArtist,
@@ -797,6 +860,65 @@ document.addEventListener('DOMContentLoaded', () => {
         mood: 'Energetic'
       }];
       currentTrackIndex = 0;
+    } else {
+      statusBadge.classList.add('warning');
+      statusBadge.textContent = isUnavailable ? 'Verification Unavailable' : 'Not Verified';
+
+      matchBox.className = 'match-details-box warning-theme';
+      matchHeader.className = 'match-title warning-txt';
+      matchHeader.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" style="width: 24px; height: 24px;">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+        </svg>
+        ${isUnavailable ? 'Verification Unavailable' : 'No Match — Not Safe to Release'}
+      `;
+
+      const rows = [
+        { label: 'Identification Source', value: escapeHtml(report.identificationSource || 'AcoustID') },
+        { label: 'Match Confidence', value: `${report.confidenceScore}% similarity` }
+      ];
+      if (report.error) {
+        rows.push({ label: 'Issue', value: escapeHtml(report.error) });
+      }
+
+      matchRows.innerHTML = rows.map(row => `
+        <div class="match-row">
+          <label>${row.label}</label>
+          <span>${row.value}</span>
+        </div>
+      `).join('');
+
+      recomTitle.textContent = isUnavailable ? 'Unable to Verify' : 'Release Warning';
+      recomDesc.textContent = report.licenseAlternative?.text || 'This result should be treated as informational and not legal advice.';
+
+      allTracks = [{
+        title: report.filename.split('.')[0],
+        artist: isUnavailable ? 'Verification not available' : 'Your Uploaded Track',
+        filepath: '#',
+        genre: 'Electronic',
+        mood: 'Ambient'
+      }];
+      currentTrackIndex = 0;
+    }
+
+    // Render YouTube embed preview if available
+    try {
+      // Remove existing embed if present
+      const old = document.getElementById('youtube-embed');
+      if (old) old.remove();
+
+      if (report.youtube && report.youtube.embedUrl) {
+        const embed = document.createElement('div');
+        embed.id = 'youtube-embed';
+        embed.style.marginTop = '1rem';
+        embed.innerHTML = `
+          <iframe width="100%" height="220" src="${report.youtube.embedUrl}" title="YouTube preview" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        `;
+        // Insert embed above the match details box
+        matchBox.parentNode.insertBefore(embed, matchBox);
+      }
+    } catch (e) {
+      console.warn('Unable to render YouTube embed preview', e);
     }
   }
 

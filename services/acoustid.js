@@ -2,16 +2,14 @@ const fpcalc = require('fpcalc');
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
+const { spawnSync } = require('child_process');
 
 const MATCH_SCORE_THRESHOLD = 0.5;
 const LOOKUP_URL = 'https://api.acoustid.org/v2/lookup';
 
 function getApiKey() {
   const key = process.env.ACOUSTID_API_KEY;
-  if (!key || key === 'your_acoustid_application_key') {
-    throw new Error('ACOUSTID_API_KEY is not configured. Add your key to .env.');
-  }
-  return key;
+  return key && key !== 'your_acoustid_application_key' ? key : null;
 }
 
 function getFpcalcCommand() {
@@ -25,15 +23,20 @@ function getFpcalcCommand() {
     return bundledPath;
   }
 
-  return 'fpcalc';
+  return binName;
 }
 
 function fingerprintFile(filePath) {
   return new Promise((resolve, reject) => {
-    fpcalc(filePath, { command: getFpcalcCommand() }, (err, result) => {
+    const command = getFpcalcCommand();
+    if (!command) {
+      return reject(new Error('Chromaprint fpcalc is not configured. Install it or set FPCALC_PATH.'));
+    }
+
+    fpcalc(filePath, { command }, (err, result) => {
       if (err) {
         return reject(new Error(
-          'Could not fingerprint audio. Ensure Chromaprint fpcalc is installed (run npm install).'
+          'Could not fingerprint audio. Ensure Chromaprint fpcalc is installed and accessible.'
         ));
       }
       resolve(result);
@@ -49,16 +52,17 @@ async function lookupFingerprint(duration, fingerprint) {
     format: 'json'
   });
 
-  // AcoustID expects literal "+" separators in meta; URLSearchParams encodes them incorrectly.
   const response = await fetch(`${LOOKUP_URL}?${params.toString()}&meta=recordings+releasegroups`);
-  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(`AcoustID lookup failed with status ${response.status}.`);
+  }
 
+  const data = await response.json();
   if (data.status === 'error') {
     throw new Error(data.error?.message || 'AcoustID lookup failed.');
   }
 
   let results = data.results || [];
-
   const topMatch = results.find(result => result.score >= MATCH_SCORE_THRESHOLD);
   if (topMatch && !topMatch.recordings?.length && topMatch.id) {
     const trackParams = new URLSearchParams({
@@ -110,55 +114,113 @@ function parseMatchResults(results) {
   };
 }
 
-function buildReport({ filename, fileSize, format, fingerprint, duration, results }) {
-  const parsed = parseMatchResults(results);
-  const fingerprintHash = hashFingerprint(fingerprint);
-  const confidenceScore = parsed.matched ? parsed.confidence : 0;
-
+function buildReport({ filename, fileSize, format, fingerprint, duration, results = [], lookupError }) {
+  const fingerprintHash = fingerprint ? hashFingerprint(fingerprint) : 'unavailable';
   const base = {
     filename,
     fileSize,
     format,
     scanTimestamp: new Date().toISOString(),
     fingerprintHash,
-    confidenceScore,
+    confidenceScore: 0,
     identificationSource: 'AcoustID'
   };
 
-  if (parsed.matched) {
+  if (lookupError) {
     return {
       ...base,
-      status: 'Match Found',
-      match: parsed.match,
+      status: 'Verification unavailable',
+      match: null,
+      error: lookupError.message,
       licenseAlternative: {
-        licenseName: 'Identification note',
+        licenseName: 'Verification unavailable',
         url: 'https://acoustid.org/webservice',
-        text: 'A known recording was identified. This result does not determine copyright status or grant permission to use the audio.'
+        text: lookupError.message ||
+          'The fingerprint verification could not complete because the service is not configured or an external lookup failed.'
+      }
+    };
+  }
+
+  const parsed = parseMatchResults(results);
+  if (!parsed.matched) {
+    return {
+      ...base,
+      status: 'No Match Found',
+      match: null,
+      licenseAlternative: {
+        licenseName: 'Release warning',
+        url: 'https://acoustid.org/webservice',
+        text: 'No match was found in the AcoustID fingerprint database. This does not mean the track is safe to release — it may still contain uncleared samples, covers, or other protected material. Do not distribute until you have confirmed proper rights and licensing.'
       }
     };
   }
 
   return {
     ...base,
-    status: 'No Match Found',
-    match: null,
+    status: 'Match Found',
+    match: parsed.match,
     licenseAlternative: {
-      licenseName: 'Release warning',
+      licenseName: 'Identification note',
       url: 'https://acoustid.org/webservice',
-      text: 'No match was found in the AcoustID fingerprint database. This does not mean the track is safe to release — it may still contain uncleared samples, covers, or other protected material. Do not distribute until you have confirmed proper rights and licensing.'
+      text: 'A known recording was identified. This result does not determine copyright status or grant permission to use the audio.'
     }
   };
 }
 
 async function verifyAudioFile(filePath, meta) {
-  const { fingerprint, duration } = await fingerprintFile(filePath);
-  const results = await lookupFingerprint(duration, fingerprint);
-  return buildReport({ ...meta, fingerprint, duration, results });
+  let fingerprint;
+  let duration = 0;
+
+  try {
+    const result = await fingerprintFile(filePath);
+    fingerprint = result.fingerprint;
+    duration = result.duration;
+  } catch (error) {
+    return buildReport({ ...meta, fingerprint: null, duration: 0, results: [], lookupError: error });
+  }
+
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    return buildReport({
+      ...meta,
+      fingerprint,
+      duration,
+      results: [],
+      lookupError: new Error('ACOUSTID_API_KEY is not configured. Add your key to .env or deployment settings.')
+    });
+  }
+
+  try {
+    const results = await lookupFingerprint(duration, fingerprint);
+    return buildReport({ ...meta, fingerprint, duration, results });
+  } catch (error) {
+    return buildReport({ ...meta, fingerprint, duration, results: [], lookupError: error });
+  }
+}
+
+function isFpcalcAvailable() {
+  const command = getFpcalcCommand();
+  if (!command) return false;
+  try {
+    const result = spawnSync(command, ['-version'], {
+      stdio: 'ignore',
+      shell: false
+    });
+    return result.status === 0;
+  } catch {
+    return false;
+  }
+}
+
+function isAcoustidConfigured() {
+  return !!getApiKey();
 }
 
 module.exports = {
   verifyAudioFile,
   fingerprintFile,
   lookupFingerprint,
-  buildReport
+  buildReport,
+  isFpcalcAvailable,
+  isAcoustidConfigured
 };

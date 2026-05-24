@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const playlistDescInput = document.getElementById('new-playlist-desc');
   const playlistModal = document.getElementById('playlist-modal');
   const modalClose = document.getElementById('modal-close');
+  const permissionRequestsSection = document.getElementById('permission-requests-section');
+  const permissionRequestsList = document.getElementById('permission-requests-list');
 
   let allPlaylists = [];
   let currentPlaylistId = null;
@@ -177,6 +179,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function getPermissionRequests() {
+    const stored = localStorage.getItem('harmoniq_permission_requests');
+    return stored ? JSON.parse(stored) : [];
+  }
+
+  function renderPermissionRequests() {
+    if (!permissionRequestsSection || !permissionRequestsList) return;
+
+    const requests = getPermissionRequests();
+    permissionRequestsList.innerHTML = '';
+
+    if (requests.length === 0) {
+      permissionRequestsList.innerHTML = `
+        <div class="permission-request-empty">
+          <p>No permission requests yet. Click "Request Permission" from flagged tracks in Discover.</p>
+        </div>
+      `;
+      return;
+    }
+
+    permissionRequestsList.innerHTML = requests.map(request => `
+      <div class="permission-request-item">
+        <div class="permission-request-meta">
+          <div>
+            <h4>${escapeHtml(request.title)}</h4>
+            <p>${escapeHtml(request.artist)}</p>
+          </div>
+          <span class="permission-status">${escapeHtml(request.status)}</span>
+        </div>
+        <p class="permission-project"><strong>Project:</strong> ${escapeHtml(request.projectName)}</p>
+        <p class="permission-date">Requested ${formatDate(request.requestedAt)}</p>
+      </div>
+    `).join('');
+  }
+
   // Helper: escape HTML
   function escapeHtml(text) {
     const map = {
@@ -218,4 +255,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initial load
   loadPlaylists();
+  renderPermissionRequests();
 });

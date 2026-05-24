@@ -1,0 +1,57 @@
+Harmoniq Pitch Deck Outline
+
+Slide 1: Title
+- Harmoniq
+- Unified music discovery and copyright verification for content creators
+- Presenters: [Your Name] and [Friend's Name]
+
+Slide 2: Company Purpose
+- Harmoniq helps creators find safe, copyright-friendly music and verify audio before publishing.
+- One platform combining track discovery, licensing clarity, playlist management, and audio fingerprinting.
+- Target audience: content creators making videos, podcasts, social media, and online courses.
+
+Slide 3: Problem
+- Creators waste hours hopping between multiple libraries and license pages.
+- Copyright rules are confusing, especially for non-commercial and remix use.
+- No single product currently gives both music discovery and quick verification in the same flow.
+
+Slide 4: Solution
+- Harmoniq bundles discovery, licensing interpretation, and verification in one app.
+- Search CC/public domain music with beginner-friendly icons and clear usage guidance.
+- Verify tracks with audio fingerprinting to reduce copyright risk before publishing.
+
+Slide 5: Why Now
+- Rapid creator economy growth means more independent content and more copyright risk.
+- Platforms are enforcing rules more aggressively, so creators need safer workflows.
+- Creators are ready for tools that simplify legal decisions without requiring lawyers.
+
+Slide 6: Market Size
+- Primary market: content creators, YouTubers, podcasters, indie filmmakers, educators.
+- Creator economy value: hundreds of billions globally.
+- Adjacent market: digital audio licensing and safe music discovery.
+
+Slide 7: Product
+- Discovery page with search, filters, and mixed source results.
+- License legend and simplified license labels for beginners.
+- Playlist management with save/share/export features.
+- Upload/copyright checker page for fingerprint analysis and match reporting.
+
+Slide 8: Team
+- Two founders: you and your friend.
+- Full-stack product execution with Node.js, Express, HTML/CSS/JS.
+- Strong focus on creator workflows and fast, easy music verification.
+
+Slide 9: Business Model
+- Free tier for discovery, playlists, and basic verification.
+- Paid upgraded tier for legal assumption features and premium verification.
+- Additional revenue through Google ads and future licensing partnerships.
+
+Slide 10: Competition
+- Existing competitors each offer only one component: discovery or verification.
+- Harmoniq combines both, plus playlist management and beginner-friendly licensing.
+- Differentiator: an integrated creator workflow, not separate tools.
+
+Slide 11: Financials
+- Low initial costs: simple stack, Render deployment, local storage for playlists.
+- Revenue plan: ads + paid upgrade tier with legal assumptions.
+- Early focus: demo presentation and validating creator demand.

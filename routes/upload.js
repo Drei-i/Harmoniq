@@ -103,23 +103,50 @@ router.post('/link', async (req, res) => {
   let tempPath = null;
 
   try {
-    if (!isDirectAudioUrl(trimmedUrl)) {
-      return res.status(400).json({
-        error: 'Only direct audio file URLs are supported for fingerprinting (e.g. https://example.com/track.mp3). Use file upload for other sources.'
-      });
+    // Only accept YouTube links for the link checker. YouTube videos cannot be fingerprinted directly
+    // via Chromaprint without downloading the audio first. This endpoint will validate and return
+    // metadata about the YouTube link and a friendly report indicating verification is unavailable.
+    function extractYouTubeId(u) {
+      try {
+        const parsed = new URL(u);
+        const host = parsed.hostname.toLowerCase();
+        if (host.includes('youtu.be')) {
+          return parsed.pathname.slice(1);
+        }
+        if (host.includes('youtube.com')) {
+          if (parsed.searchParams.has('v')) return parsed.searchParams.get('v');
+          // support /shorts/ID and other path styles
+          const parts = parsed.pathname.split('/').filter(Boolean);
+          const idx = parts.indexOf('shorts');
+          if (idx !== -1 && parts[idx+1]) return parts[idx+1];
+        }
+        return null;
+      } catch (e) {
+        return null;
+      }
     }
 
-    tempPath = await downloadDirectAudio(trimmedUrl);
-    const ext = path.extname(new URL(trimmedUrl).pathname).toUpperCase().replace('.', '') || 'AUDIO';
-    const displayFilename = trimmedUrl.length > 45 ? trimmedUrl.substring(0, 42) + '...' : trimmedUrl;
+    const videoId = extractYouTubeId(trimmedUrl);
+    if (!videoId) {
+      return res.status(400).json({ error: 'Only YouTube links are supported by the link checker. Please provide a YouTube video URL or upload the audio file directly.' });
+    }
 
-    const report = await verifyAudioFile(tempPath, {
-      filename: displayFilename,
-      fileSize: 'External audio link',
-      format: ext
-    });
+    const report = {
+      filename: trimmedUrl,
+      fileSize: 'YouTube link',
+      format: 'YouTube',
+      fingerprintHash: null,
+      scanTimestamp: new Date().toISOString(),
+      confidenceScore: 0,
+      status: 'Verification unavailable',
+      identificationSource: 'YouTube URL',
+      error: null,
+      youtube: {
+        videoId,
+        embedUrl: `https://www.youtube.com/embed/${videoId}`
+      }
+    };
 
-    deleteFileQuietly(tempPath);
     res.json(report);
   } catch (error) {
     if (tempPath) deleteFileQuietly(tempPath);

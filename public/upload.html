@@ -72,15 +72,16 @@
           </svg>
         </div>
         <div class="upload-text">
-          <h3>Verify via Audio Link</h3>
-          <p>Paste a direct link to an audio file (e.g. .mp3, .wav). YouTube and SoundCloud links are not supported.</p>
+          <h3>Verify via YouTube Link</h3>
+          <p>Paste a YouTube video URL. YouTube videos cannot be fingerprinted directly — this checker will validate the link and provide a note. For Chromaprint verification, upload the audio file.</p>
         </div>
         <div style="width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 1rem;">
-          <input type="url" id="audio-link-input" placeholder="https://example.com/audio.mp3" style="width: 100%; padding: 1rem 1.25rem; background-color: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: var(--border-radius); color: var(--text-primary); font-family: var(--font-body); font-size: 0.95rem; outline: none; transition: var(--transition-smooth);" autocomplete="off">
+          <input type="url" id="audio-link-input" placeholder="https://www.youtube.com/watch?v=VIDEO_ID or https://youtu.be/VIDEO_ID" style="width: 100%; padding: 1rem 1.25rem; background-color: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: var(--border-radius); color: var(--text-primary); font-family: var(--font-body); font-size: 0.95rem; outline: none; transition: var(--transition-smooth);" autocomplete="off">
           <button class="browse-btn" id="verify-link-btn" style="width: 100%;">Verify Link</button>
         </div>
       </div>
 
+      <div class="upload-error-message" id="upload-error" style="display: none;"></div>
 
       <!-- Verification Processing Loader -->
       <div class="process-loader" id="upload-loader">
