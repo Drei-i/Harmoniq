@@ -53,51 +53,97 @@ async function searchTracks(query = '') {
   
   console.log(`[discovery] Found ${filteredLocalTracks.length} local tracks for query: "${query}"`);
   
+  // Return local results immediately (don't wait for external APIs)
+  if (!query.trim()) {
+    // For empty query, just return local tracks
+    console.log(`[discovery] Empty query - returning ${filteredLocalTracks.length} local tracks immediately`);
+    return {
+      tracks: filteredLocalTracks,
+      source: 'local'
+    };
+  }
+
+  // For search queries, start with local results and optionally add external results
   let combinedTracks = [...filteredLocalTracks];
   let source = 'local';
 
-  // If we have a specific search query, also try external APIs to get more results
-  if (query.trim()) {
-    // Try Jamendo
-    if (process.env.JAMENDO_CLIENT_ID && process.env.JAMENDO_CLIENT_ID !== 'your_jamendo_client_id') {
-      try {
-        console.log('[discovery] Trying Jamendo API for query:', query);
-        const jamendoTracks = await searchJamendo(query);
-        if (jamendoTracks?.length) {
-          console.log(`[discovery] Jamendo returned ${jamendoTracks.length} tracks`);
-          combinedTracks = [...combinedTracks, ...jamendoTracks];
-          source = 'mixed';
-        }
-      } catch (error) {
-        console.warn('[discovery] Jamendo error:', error.message);
-      }
-    }
+  // Try external APIs in parallel with a timeout to avoid blocking
+  const externalResults = await Promise.allSettled([
+    searchExternalWithTimeout('jamendo'),
+    searchExternalWithTimeout('archive', query)
+  ]);
 
-    // Try Internet Archive
-    try {
-      console.log('[discovery] Trying Internet Archive API for query:', query);
-      const archiveTracks = await searchArchive(query);
-      if (archiveTracks?.length) {
-        console.log(`[discovery] Internet Archive returned ${archiveTracks.length} tracks`);
-        combinedTracks = [...combinedTracks, ...archiveTracks];
-        source = 'mixed';
-      }
-    } catch (error) {
-      console.warn('[discovery] Internet Archive error:', error.message);
-    }
+  // Process results from Jamendo (if available)
+  if (externalResults[0].status === 'fulfilled' && externalResults[0].value?.length) {
+    const jamendoTracks = externalResults[0].value;
+    console.log(`[discovery] Jamendo returned ${jamendoTracks.length} tracks`);
+    combinedTracks = [...combinedTracks, ...jamendoTracks];
+    source = 'mixed';
   }
 
-  // Remove duplicates by id if present
+  // Process results from Internet Archive (if available)
+  if (externalResults[1].status === 'fulfilled' && externalResults[1].value?.length) {
+    const archiveTracks = externalResults[1].value;
+    console.log(`[discovery] Internet Archive returned ${archiveTracks.length} tracks`);
+    combinedTracks = [...combinedTracks, ...archiveTracks];
+    source = 'mixed';
+  }
+
+  // Remove duplicates by id
   const uniqueTracks = Array.from(
     new Map(combinedTracks.map(track => [track.id, track])).values()
   );
 
-  console.log(`[discovery] Returning ${uniqueTracks.length} total tracks (source: ${source})`);
+  console.log(`[discovery] Returning ${uniqueTracks.length} total tracks immediately (source: ${source})`);
   
   return {
     tracks: uniqueTracks,
     source: source
   };
+}
+
+// Helper function to call external APIs with a timeout
+async function searchExternalWithTimeout(apiName, query = '') {
+  const timeoutMs = 3000; // 3 second timeout
+  
+  try {
+    const promise = apiName === 'jamendo' 
+      ? searchJamendoWithTimeout(query, timeoutMs)
+      : searchArchiveWithTimeout(query, timeoutMs);
+    
+    return await promise;
+  } catch (error) {
+    console.warn(`[discovery] ${apiName} timeout or error:`, error.message);
+    return [];
+  }
+}
+
+// Jamendo search with timeout
+async function searchJamendoWithTimeout(query, timeoutMs) {
+  if (!process.env.JAMENDO_CLIENT_ID || process.env.JAMENDO_CLIENT_ID === 'your_jamendo_client_id') {
+    return [];
+  }
+
+  console.log(`[discovery] Trying Jamendo API for query: "${query}"`);
+  
+  return Promise.race([
+    searchJamendo(query),
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Jamendo timeout')), timeoutMs)
+    )
+  ]);
+}
+
+// Internet Archive search with timeout
+async function searchArchiveWithTimeout(query, timeoutMs) {
+  console.log(`[discovery] Trying Internet Archive API for query: "${query}"`);
+  
+  return Promise.race([
+    searchArchive(query),
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Internet Archive timeout')), timeoutMs)
+    )
+  ]);
 }
 
 module.exports = {
