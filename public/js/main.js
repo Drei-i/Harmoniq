@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let synthInterval = null;
   let audioContext = null;
   let synthNodes = [];
+  let currentSearchId = 0;
 
   // Core HTML Elements
   const tracksGrid = document.getElementById('tracks-grid');
@@ -65,6 +66,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
   
   async function loadTracks(searchQuery = '') {
+    const searchId = ++currentSearchId;
+
     try {
       if (tracksLoading) tracksLoading.style.display = 'flex';
       if (tracksGrid) tracksGrid.style.display = 'none';
@@ -77,16 +80,20 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!response.ok) throw new Error('Failed to load tracks.');
 
       const data = await response.json();
+      if (searchId !== currentSearchId) return;
+
       allTracks = Array.isArray(data) ? data : (data.tracks || []);
       renderTracks(allTracks, data.source);
     } catch (error) {
       console.error(error);
+      if (searchId !== currentSearchId) return;
+
       if (tracksGrid) {
         tracksGrid.innerHTML = `<p class="error-msg" style="grid-column: 1/-1; text-align: center; color: var(--color-risk);">Error loading tracks database. Please ensure the backend server is running.</p>`;
         tracksGrid.style.display = 'grid';
       }
     } finally {
-      if (tracksLoading) tracksLoading.style.display = 'none';
+      if (searchId === currentSearchId && tracksLoading) tracksLoading.style.display = 'none';
     }
   }
 
@@ -119,7 +126,9 @@ document.addEventListener('DOMContentLoaded', () => {
       ? 'Jamendo'
       : source === 'archive'
         ? 'Internet Archive'
-        : 'Local demo catalog';
+        : source === 'mixed'
+          ? 'Mixed sources'
+          : 'Local demo catalog';
 
     tracksGrid.innerHTML = tracks.map((track, index) => {
       const badge = getLicenseBadge(track);
