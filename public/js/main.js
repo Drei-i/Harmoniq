@@ -140,11 +140,19 @@ document.addEventListener('DOMContentLoaded', () => {
               <span class="tag">${escapeHtml(track.mood)}</span>
               <span class="tag">${escapeHtml(sourceLabel)}</span>
             </div>
-            <button class="play-action-btn" data-action="play" data-index="${index}">
-              <svg viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z"/>
-              </svg>
-            </button>
+            <div class="track-actions">
+              <button class="action-btn save-playlist-btn" data-index="${index}" title="Save to Playlist">
+                <svg viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v16l7-3 7 3V5c0-1.1.89-2 2-2h-2z"/></svg>
+              </button>
+              <button class="action-btn share-track-btn" data-index="${index}" title="Share Track">
+                <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.15c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>
+              </button>
+              <button class="play-action-btn" data-action="play" data-index="${index}">
+                <svg viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       `;
@@ -160,6 +168,67 @@ document.addEventListener('DOMContentLoaded', () => {
         playTrack(index);
       });
     });
+
+    // Hook save to playlist buttons
+    document.querySelectorAll('.save-playlist-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const index = parseInt(btn.getAttribute('data-index'), 10);
+        saveTrackToPlaylist(allTracks[index]);
+      });
+    });
+
+    // Hook share track buttons
+    document.querySelectorAll('.share-track-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const index = parseInt(btn.getAttribute('data-index'), 10);
+        shareTrack(allTracks[index]);
+      });
+    });
+  }
+
+  function saveTrackToPlaylist(track) {
+    const playlists = JSON.parse(localStorage.getItem('harmoniq_playlists') || '[]');
+    
+    if (playlists.length === 0) {
+      alert('No playlists yet. Create one on the My Playlists page!');
+      return;
+    }
+
+    let selectedPlaylistId = prompt(
+      'Select playlist:\n' + 
+      playlists.map((p, i) => `${i + 1}. ${p.name}`).join('\n')
+    );
+
+    if (!selectedPlaylistId) return;
+
+    const playlistIndex = parseInt(selectedPlaylistId) - 1;
+    if (playlistIndex < 0 || playlistIndex >= playlists.length) {
+      alert('Invalid playlist selection');
+      return;
+    }
+
+    playlists[playlistIndex].tracks.push(track);
+    localStorage.setItem('harmoniq_playlists', JSON.stringify(playlists));
+    alert(`Added "${track.title}" to "${playlists[playlistIndex].name}"`);
+  }
+
+  function shareTrack(track) {
+    const shareText = `Check out "${track.title}" by ${track.artist} on Harmoniq - ${track.license} licensed music for creators`;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: 'Harmoniq Track',
+        text: shareText,
+        url: window.location.href
+      }).catch(err => console.log('Share cancelled'));
+    } else {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(shareText).then(() => {
+        alert('Track info copied to clipboard!');
+      });
+    }
   }
 
   function setupDiscoveryEvents() {
