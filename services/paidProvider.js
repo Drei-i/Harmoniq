@@ -1,9 +1,11 @@
 // Prototype paid-provider integration abstraction
 // Supports a 'mock' provider and can be extended for real providers like Gracenote/AudibleMagic
-const fetch = require('node-fetch');
 
 const PROVIDER = process.env.PAID_PROVIDER || 'mock';
 const API_KEY = process.env.PAID_PROVIDER_API_KEY || '';
+
+// Note: `node-fetch` is optional for the mock provider. If a real provider is selected,
+// we attempt to require it at runtime and return a clear error if missing so the app doesn't crash.
 
 async function lookupFingerprint({ fingerprint, trackMeta = {} } = {}) {
   // Basic input validation
@@ -31,6 +33,15 @@ async function lookupFingerprint({ fingerprint, trackMeta = {} } = {}) {
   }
 
   try {
+    // If a real provider is requested and we need to make HTTP calls, ensure fetch is available
+    let fetchImpl = null;
+    try {
+      fetchImpl = require('node-fetch');
+    } catch (e) {
+      // If node-fetch is missing, provide a helpful error to the caller
+      return { ok: false, error: 'provider integration requires node-fetch; install dependency or use mock provider' };
+    }
+
     if (PROVIDER === 'gracenote') {
       // Gracenote integration would go here. This is a placeholder to show structure.
       // Real integration requires SDK/API agreement and credentials.
