@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Harmoniq - Copyright Checker & Verification Report</title>
+  <meta name="description" content="Upload audio files to check for potential copyright infringements and generate details verification reports.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <!-- Header Navigation -->
+  <header>
+    <div class="nav-container">
+      <a href="/" class="logo">
+        <div class="logo-icon"></div>
+        Harmoniq
+      </a>
+      <nav>
+        <ul>
+          <li><a href="/" id="nav-discover">Discover</a></li>
+          <li><a href="/upload.html" class="active" id="nav-upload">Copyright Checker</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <!-- Hero Header -->
+    <section class="hero">
+      <h1>Identify <span>Audio</span> Fingerprints</h1>
+      <p>Upload audio for real Chromaprint analysis against the AcoustID database. Results are identification only — not legal advice.</p>
+    </section>
+
+    <!-- Upload Interface Container -->
+    <div class="upload-container">
+      
+      <!-- Checker Method Tabs -->
+      <div class="checker-tabs">
+        <button class="tab-btn active" id="tab-file">File Upload</button>
+        <button class="tab-btn" id="tab-link">Audio Link URL</button>
+      </div>
+
+      <!-- Upload File Drop Zone -->
+      <div class="upload-zone" id="upload-zone">
+        <div class="upload-icon-wrapper">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 40px; height: 40px;">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+          </svg>
+        </div>
+        <div class="upload-text">
+          <h3>Drag & Drop your audio file here</h3>
+          <p>Supports MP3, WAV, OGG, M4A up to 25MB</p>
+        </div>
+        <div id="file-selected-display" class="upload-file-info" style="display: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px;">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 9l6-6m0 0l6 6m-6-6v12m0 5.25c0-.414-.336-.75-.75-.75h-7.5a.75.75 0 00-.75.75v1.5c0 .414.336.75.75.75h7.5a.75.75 0 00.75-.75v-1.5z" />
+          </svg>
+          <span id="file-name-span">track.mp3</span>
+        </div>
+        <input type="file" id="audio-file-input" accept="audio/*" style="display: none;">
+        <button class="browse-btn" id="browse-btn">Browse Files</button>
+      </div>
+
+      <!-- Link Verification Input Zone -->
+      <div class="upload-zone" id="link-zone" style="display: none;">
+        <div class="upload-icon-wrapper">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 40px; height: 40px;">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+          </svg>
+        </div>
+        <div class="upload-text">
+          <h3>Verify via Audio Link</h3>
+          <p>Paste a direct link to an audio file (e.g. .mp3, .wav). YouTube and SoundCloud links are not supported.</p>
+        </div>
+        <div style="width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 1rem;">
+          <input type="url" id="audio-link-input" placeholder="https://example.com/audio.mp3" style="width: 100%; padding: 1rem 1.25rem; background-color: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: var(--border-radius); color: var(--text-primary); font-family: var(--font-body); font-size: 0.95rem; outline: none; transition: var(--transition-smooth);" autocomplete="off">
+          <button class="browse-btn" id="verify-link-btn" style="width: 100%;">Verify Link</button>
+        </div>
+      </div>
+
+
+      <!-- Verification Processing Loader -->
+      <div class="process-loader" id="upload-loader">
+        <div class="spinner"></div>
+        <p id="loader-message">Uploading track metadata...</p>
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill" id="upload-progress-fill"></div>
+        </div>
+      </div>
+
+      <!-- Verification Report Output -->
+      <div class="report-container" id="report-container">
+        <div class="report-card">
+          <div class="report-header">
+            <div class="report-header-text">
+              <h2>Verification Report</h2>
+              <p id="report-timestamp">Scanned on: May 24, 2026</p>
+            </div>
+            <div class="status-badge" id="report-status-badge">Pending</div>
+          </div>
+          <div class="report-body">
+            <div class="report-grid">
+              <div class="report-item">
+                <label>File Name</label>
+                <span id="report-file-name">track.mp3</span>
+              </div>
+              <div class="report-item">
+                <label>Size / Format</label>
+                <span id="report-file-meta">5.4 MB &bull; MP3</span>
+              </div>
+              <div class="report-item">
+                <label>Fingerprint Hash</label>
+                <span id="report-hash" style="font-family: monospace; font-size: 0.8rem;">sha256-a1b2c3d4...</span>
+              </div>
+              <div class="report-item">
+                <label>Match Confidence</label>
+                <span id="report-match-rate">0.0% similarity</span>
+              </div>
+            </div>
+
+            <p class="legal-disclaimer" style="margin: 1.25rem 0 0; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5;">
+              Harmoniq provides automated audio identification results for informational purposes only. This is not legal advice. Consult qualified counsel for copyright and licensing decisions.
+            </p>
+
+            <!-- Risk Details Display Box -->
+            <div class="match-details-box" id="match-details-box">
+              <div class="match-title" id="match-title-header">
+                <!-- Status icon / text -->
+                Safe
+              </div>
+              <div class="match-data-rows" id="match-rows-container">
+                <!-- Dynamic rows of registry info -->
+              </div>
+              <div class="recom-box">
+                <h4 id="recom-title">Recommended Action</h4>
+                <p id="recom-desc">No database match does not mean this track is cleared for release. Confirm licensing before distributing.</p>
+              </div>
+            </div>
+
+            <button class="reset-upload-btn" id="reset-upload-btn">Upload Another Track</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <p>&copy; 2026 Harmoniq Copyright & Verification Platform. Built with Vanilla Web Tech.</p>
+  </footer>
+
+  <script src="/js/main.js"></script>
+</body>
+</html>
