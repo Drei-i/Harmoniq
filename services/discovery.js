@@ -47,55 +47,56 @@ function filterLocalTracks(tracks, query) {
 }
 
 async function searchTracks(query = '') {
-  // Always try local tracks as primary source
+  // Always search local tracks first
   const localTracks = readLocalTracks();
   const filteredLocalTracks = filterLocalTracks(localTracks, query);
   
-  // If we have local results, return them immediately
-  if (filteredLocalTracks.length > 0) {
-    console.log(`[discovery] Returning ${filteredLocalTracks.length} local tracks for query: "${query}"`);
-    return {
-      tracks: filteredLocalTracks,
-      source: 'local'
-    };
-  }
+  console.log(`[discovery] Found ${filteredLocalTracks.length} local tracks for query: "${query}"`);
+  
+  let combinedTracks = [...filteredLocalTracks];
+  let source = 'local';
 
-  // Only try external APIs if local search returns nothing
-  if (process.env.JAMENDO_CLIENT_ID && process.env.JAMENDO_CLIENT_ID !== 'your_jamendo_client_id') {
+  // If we have a specific search query, also try external APIs to get more results
+  if (query.trim()) {
+    // Try Jamendo
+    if (process.env.JAMENDO_CLIENT_ID && process.env.JAMENDO_CLIENT_ID !== 'your_jamendo_client_id') {
+      try {
+        console.log('[discovery] Trying Jamendo API for query:', query);
+        const jamendoTracks = await searchJamendo(query);
+        if (jamendoTracks?.length) {
+          console.log(`[discovery] Jamendo returned ${jamendoTracks.length} tracks`);
+          combinedTracks = [...combinedTracks, ...jamendoTracks];
+          source = 'mixed';
+        }
+      } catch (error) {
+        console.warn('[discovery] Jamendo error:', error.message);
+      }
+    }
+
+    // Try Internet Archive
     try {
-      console.log('[discovery] Trying Jamendo API...');
-      const jamendoTracks = await searchJamendo(query);
-      if (jamendoTracks?.length) {
-        console.log(`[discovery] Jamendo returned ${jamendoTracks.length} tracks`);
-        return {
-          tracks: jamendoTracks,
-          source: 'jamendo'
-        };
+      console.log('[discovery] Trying Internet Archive API for query:', query);
+      const archiveTracks = await searchArchive(query);
+      if (archiveTracks?.length) {
+        console.log(`[discovery] Internet Archive returned ${archiveTracks.length} tracks`);
+        combinedTracks = [...combinedTracks, ...archiveTracks];
+        source = 'mixed';
       }
     } catch (error) {
-      console.warn('[discovery] Jamendo unavailable:', error.message);
+      console.warn('[discovery] Internet Archive error:', error.message);
     }
   }
 
-  try {
-    console.log('[discovery] Trying Internet Archive API...');
-    const archiveTracks = await searchArchive(query);
-    if (archiveTracks?.length) {
-      console.log(`[discovery] Internet Archive returned ${archiveTracks.length} tracks`);
-      return {
-        tracks: archiveTracks,
-        source: 'archive'
-      };
-    }
-  } catch (error) {
-    console.warn('[discovery] Internet Archive unavailable:', error.message);
-  }
+  // Remove duplicates by id if present
+  const uniqueTracks = Array.from(
+    new Map(combinedTracks.map(track => [track.id, track])).values()
+  );
 
-  // Final fallback to local tracks (even if query doesn't match perfectly)
-  console.log('[discovery] All external APIs failed, returning local tracks');
+  console.log(`[discovery] Returning ${uniqueTracks.length} total tracks (source: ${source})`);
+  
   return {
-    tracks: localTracks,
-    source: 'local'
+    tracks: uniqueTracks,
+    source: source
   };
 }
 
