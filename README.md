@@ -193,6 +193,19 @@ POST /api/verify-link              # Verify audio URL
 
 Live URL will be provided (e.g., `https://harmoniq-xxxx.onrender.com`)
 
+### Recommended Render environment variables
+
+- `PORT` (optional) — Render provides one automatically
+- `NODE_ENV` — `production`
+- `ACOUSTID_API_KEY` — your AcoustID API key (optional; upload verification will be limited without it)
+- `FPCALC_PATH` — path to `fpcalc` binary if not installed system-wide (optional)
+- `PAID_PROVIDER` — `mock` or provider name (optional)
+- `PAID_PROVIDER_API_KEY` — API key for paid provider (optional)
+
+Notes:
+- The platform uses `fpcalc` (Chromaprint). The `postinstall` script attempts to ensure an fpcalc binary; verify `ensure-fpcalc.js` ran successfully in build logs.
+- If you rely on paid provider integrations, ensure `node-fetch` is installed (it's included in `package.json`).
+
 ## Troubleshooting
 
 ### Search returns no results

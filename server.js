@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -16,22 +17,50 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Serve uploaded audio files at /audio so discovery tracks can reference them
 app.use('/audio', express.static(path.join(__dirname, 'uploads')));
 
+// Simple request logging for basic monitoring
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
 // Mount API routes
 const tracksRouter = require('./routes/tracks');
 const uploadRouter = require('./routes/upload');
 const paidRouter = require('./routes/paidProvider');
 const { isFpcalcAvailable, isAcoustidConfigured } = require('./services/acoustid');
+const { isProviderConfigured } = require('./services/paidProvider');
 
 app.use('/api/tracks', tracksRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/paid', paidRouter);
 
 app.get('/api/health', (req, res) => {
+  // Detect node-fetch availability
+  let nodeFetchAvailable = true;
+  try {
+    require.resolve('node-fetch');
+  } catch (e) {
+    nodeFetchAvailable = false;
+  }
+
+  // Check uploads writable
+  let uploadsWritable = false;
+  try {
+    const uploadsPath = path.join(__dirname, 'uploads');
+    fs.accessSync(uploadsPath, fs.constants.W_OK);
+    uploadsWritable = true;
+  } catch (e) {
+    uploadsWritable = false;
+  }
+
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     acoustidConfigured: isAcoustidConfigured(),
-    fpcalcAvailable: isFpcalcAvailable()
+    fpcalcAvailable: isFpcalcAvailable(),
+    paidProviderConfigured: isProviderConfigured(),
+    nodeFetchAvailable,
+    uploadsWritable
   });
 });
 if (!isFpcalcAvailable()) {

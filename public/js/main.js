@@ -405,18 +405,42 @@ document.addEventListener('DOMContentLoaded', () => {
     playerArtist.textContent = track.artist;
     bottomPlayer.classList.add('active');
 
-    // Attempt HTML5 standard playback
+    // Prefer real audio playback first. Verify file is reachable before attempting play.
     stopSynth();
-    mainAudio.src = track.filepath;
-    
-    // Catch absolute error to trigger synth fallback
-    mainAudio.play().then(() => {
-      showPlayState(true);
-    }).catch(err => {
-      console.log('Using Web Audio API synthesis engine fallback.');
-      startSynth(track.genre, track.mood);
-      showPlayState(true);
-    });
+
+    const filepath = track.filepath || '';
+    const useRealAudio = filepath && filepath !== '#' ;
+
+    if (useRealAudio) {
+      // Try a lightweight HEAD request to confirm availability (with timeout)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      try {
+        const head = await fetch(filepath, { method: 'HEAD', signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (head.ok) {
+          mainAudio.src = filepath;
+          try {
+            await mainAudio.play();
+            showPlayState(true);
+            return;
+          } catch (playErr) {
+            console.warn('HTML5 audio play failed, falling back to synth:', playErr);
+            // fall through to synth fallback
+          }
+        } else {
+          console.warn('Audio HEAD check returned non-ok:', head.status);
+        }
+      } catch (err) {
+        clearTimeout(timeoutId);
+        console.warn('Audio HEAD check failed:', err);
+      }
+    }
+
+    // Fallback to the synthesizer preview when real audio is unavailable or fails
+    console.log('Using Web Audio API synthesis engine fallback.');
+    startSynth(track.genre, track.mood);
+    showPlayState(true);
   }
 
   function togglePlayback() {
