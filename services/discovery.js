@@ -65,11 +65,13 @@ async function searchTracks(query = '') {
 
   // For search queries, start with local results and optionally add external results
   let combinedTracks = [...filteredLocalTracks];
-  let source = 'local';
+  let source = filteredLocalTracks.length > 0 ? 'local' : 'none';
+
+  console.log(`[discovery] Searching external APIs for: "${query}"`);
 
   // Try external APIs in parallel with a timeout to avoid blocking
   const externalResults = await Promise.allSettled([
-    searchExternalWithTimeout('jamendo'),
+    searchExternalWithTimeout('jamendo', query),
     searchExternalWithTimeout('archive', query)
   ]);
 
@@ -78,7 +80,9 @@ async function searchTracks(query = '') {
     const jamendoTracks = externalResults[0].value;
     console.log(`[discovery] Jamendo returned ${jamendoTracks.length} tracks`);
     combinedTracks = [...combinedTracks, ...jamendoTracks];
-    source = 'mixed';
+    source = source === 'none' ? 'jamendo' : 'mixed';
+  } else if (externalResults[0].status === 'rejected') {
+    console.warn(`[discovery] Jamendo failed:`, externalResults[0].reason);
   }
 
   // Process results from Internet Archive (if available)
@@ -86,7 +90,9 @@ async function searchTracks(query = '') {
     const archiveTracks = externalResults[1].value;
     console.log(`[discovery] Internet Archive returned ${archiveTracks.length} tracks`);
     combinedTracks = [...combinedTracks, ...archiveTracks];
-    source = 'mixed';
+    source = source === 'none' ? 'archive' : 'mixed';
+  } else if (externalResults[1].status === 'rejected') {
+    console.warn(`[discovery] Internet Archive failed:`, externalResults[1].reason);
   }
 
   // Remove duplicates by id
@@ -94,7 +100,7 @@ async function searchTracks(query = '') {
     new Map(combinedTracks.map(track => [track.id, track])).values()
   );
 
-  console.log(`[discovery] Returning ${uniqueTracks.length} total tracks immediately (source: ${source})`);
+  console.log(`[discovery] Returning ${uniqueTracks.length} total tracks (source: ${source})`);
   
   return {
     tracks: uniqueTracks,
@@ -104,7 +110,7 @@ async function searchTracks(query = '') {
 
 // Helper function to call external APIs with a timeout
 async function searchExternalWithTimeout(apiName, query = '') {
-  const timeoutMs = 3000; // 3 second timeout
+  const timeoutMs = 5000; // 5 second timeout
   
   try {
     const promise = apiName === 'jamendo' 
@@ -113,7 +119,7 @@ async function searchExternalWithTimeout(apiName, query = '') {
     
     return await promise;
   } catch (error) {
-    console.warn(`[discovery] ${apiName} timeout or error:`, error.message);
+    console.warn(`[discovery] ${apiName} error:`, error.message);
     return [];
   }
 }
@@ -124,7 +130,7 @@ async function searchJamendoWithTimeout(query, timeoutMs) {
     return [];
   }
 
-  console.log(`[discovery] Trying Jamendo API for query: "${query}"`);
+  console.log(`[discovery] Querying Jamendo for: "${query}"`);
   
   return Promise.race([
     searchJamendo(query),
@@ -136,7 +142,7 @@ async function searchJamendoWithTimeout(query, timeoutMs) {
 
 // Internet Archive search with timeout
 async function searchArchiveWithTimeout(query, timeoutMs) {
-  console.log(`[discovery] Trying Internet Archive API for query: "${query}"`);
+  console.log(`[discovery] Querying Internet Archive for: "${query}"`);
   
   return Promise.race([
     searchArchive(query),
