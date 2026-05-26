@@ -4,6 +4,15 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 
+// Polyfill fetch on older Node versions if not natively available
+if (!globalThis.fetch) {
+  try {
+    globalThis.fetch = require('node-fetch');
+  } catch (e) {
+    console.warn('[startup] node-fetch is required but could not be loaded as a polyfill. Make sure Node.js v18+ is used or node-fetch is installed.');
+  }
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 

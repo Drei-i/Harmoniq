@@ -56,11 +56,16 @@ document.addEventListener('DOMContentLoaded', () => {
     setupDiscoveryEvents();
   }
 
-  if (uploadZone) {
+  if (uploadZone && tabFile && tabLink && linkZone) {
     setupUploadEvents();
   }
 
-  setupMediaPlayer();
+  const hasMediaPlayer = mainAudio && bottomPlayer && playerTitle && playerArtist && playerPlayBtn && playIcon && pauseIcon && playerPrevBtn && playerNextBtn && playerTimeCurrent && playerTimeTotal && playerProgressTrack && playerProgressFilled && playerVolumeSlider && playerVolumeFilled;
+  if (hasMediaPlayer) {
+    setupMediaPlayer();
+  } else {
+    console.warn('[Harmoniq] Media player controls not found on this page; skipping audio player initialization.');
+  }
 
   // ==========================================
   // DISCOVERY PAGE LOGIC
@@ -388,7 +393,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function playTrack(index) {
+  async function playTrack(index) {
     if (index < 0 || (allTracks.length > 0 && index >= allTracks.length)) return;
     
     currentTrackIndex = index;
